@@ -238,6 +238,7 @@
       - 노치원 등원: 월~토 오전 8시 25분
       - 노치원 귀가: 월~토 오후 5시 25분
       - 보호 모드: 월~토 08:25~17:25
+      - 토요일 밤/일요일 새벽/일요일 오전 문구는 엑셀 1~4번 항목 기준
       - 일반 모드: 그 외 시간
       - 화면 위치 이동: 일반/보호 모드 모두 5분마다 -10px ~ +10px
       - 보호 모드 터치 시 60초 정상 밝기
@@ -400,7 +401,7 @@
       const sundayCountdownStart = SUNDAY_COUNTDOWN_START_HOUR * 60;
       const weekdayCountdownStart = WEEKDAY_COUNTDOWN_START_HOUR * 60;
 
-      // 토요일 오후 5시 25분 ~ 오후 9시
+      // 1번: 토요일 오후 5시 25분 ~ 오후 9시
       if (day === 6 && currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
         return {
           task: "지금은 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
@@ -408,15 +409,31 @@
         };
       }
 
-      // 토요일 오후 9시 ~ 일요일 오후 1시
-      if ((day === 6 && currentMinutes >= sleepStart) || (day === 0 && currentMinutes < sundayCountdownStart)) {
+      // 2번: 토요일 오후 9시 ~ 토요일 오후 11시 59분
+      if (day === 6 && currentMinutes >= sleepStart) {
         return {
-          task: "지금은 휴식하는 시간입니다.",
-          notice: restSundayNotice(now)
+          task: "지금은 잠 자는 시간 입니다.",
+          notice: "내일은 일요일입니다. 노치원 쉬는 날입니다.<br>침대로 가서 잠을 자세요"
         };
       }
 
-      // 일요일 오후 1시 ~ 일요일 오후 9시
+      // 3번: 일요일 0시 ~ 일요일 오전 6시
+      if (day === 0 && currentMinutes < 6 * 60) {
+        return {
+          task: "지금은 잠 자는 시간 입니다.",
+          notice: "오늘은 일요일입니다. 노치원 쉬는 날입니다.<br>침대로 가서 잠을 자세요"
+        };
+      }
+
+      // 4번: 일요일 오전 6시 ~ 일요일 오후 12시 59분
+      if (day === 0 && currentMinutes >= 6 * 60 && currentMinutes < sundayCountdownStart) {
+        return {
+          task: "지금은 휴식하는 시간입니다.",
+          notice: "오늘은 일요일입니다. 노치원 쉬는 날입니다."
+        };
+      }
+
+      // 5번: 일요일 오후 1시 ~ 일요일 오후 9시
       if (day === 0 && currentMinutes >= sundayCountdownStart && currentMinutes < sleepStart) {
         return {
           task: "지금은 휴식하는 시간입니다.",
@@ -424,7 +441,7 @@
         };
       }
 
-      // 일요일 오후 9시 ~ 월요일 오전 7시
+      // 6번: 일요일 오후 9시 ~ 월요일 오전 7시
       if ((day === 0 && currentMinutes >= sleepStart) || (day === 1 && currentMinutes < sleepEnd)) {
         return {
           task: "지금은 잠 자는 시간 입니다.",
