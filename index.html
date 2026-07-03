@@ -303,11 +303,11 @@
       const sleepEnd = SLEEP_END_HOUR * 60;
 
       if (currentMinutes >= sleepStart || currentMinutes < sleepEnd) {
-        return "지금은 잠 자는 시간";
+        return "지금은 잠 자는 시간 입니다";
       }
 
       if (day >= 1 && day <= 6 && currentMinutes >= prepareStart && currentMinutes < goStart) {
-        return `노치원 갈 준비를<br>이대수의 안내에 따르세요`;
+        return `노치원 갈 준비와 출발 시간은<br>이대수의 안내에 따르세요`;
       }
 
       if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < returnHome) {
@@ -315,7 +315,7 @@
       }
 
       if (currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
-        return "지금은 운동 시간";
+        return "지금은 운동 시간 입니다";
       }
 
       return "지금은 편안한 휴식 시간";
