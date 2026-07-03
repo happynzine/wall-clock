@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>벽시계 앱 - 32인치 모니터용</title>
+
+  <style>
+    :root {
+      --bg: #000000;
+      --text: #ffffff;
+      --yellow: #ffd400;
+      --muted: #f1f1f1;
+
+      --top-size: clamp(34px, 3.2vw, 70px);
+      --time-label-size: clamp(34px, 3.2vw, 64px);
+      --time-size: clamp(64px, 6vw, 130px);
+      --task-size: clamp(56px, 5.6vw, 120px);
+      --notice-size: clamp(50px, 4.8vw, 104px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
+    .screen {
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      padding: 3vh 3vw;
+      text-align: center;
+      transition: transform 0.8s ease, opacity 0.8s ease, filter 0.8s ease;
+    }
+
+    body.away-protect-mode .screen {
+      opacity: 0.3;
+      filter: brightness(0.55);
+    }
+
+    body.temp-bright .screen {
+      opacity: 1;
+      filter: brightness(1);
+    }
+
+    .top-line,
+    .time-line,
+    .task-line,
+    .notice-line {
+      width: min(92vw, 1750px);
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 0.45em;
+      flex-wrap: wrap;
+    }
+
+    .top-line {
+      font-size: var(--top-size);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+    }
+
+    .top-line .weekday {
+      color: var(--yellow);
+      text-decoration: underline;
+      text-decoration-thickness: 0.07em;
+      text-underline-offset: 0.14em;
+    }
+
+    .time-line {
+      line-height: 1.12;
+    }
+
+    .time-label {
+      font-size: var(--time-label-size);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .time-value {
+      font-size: var(--time-size);
+      font-weight: 950;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .task-line {
+      font-size: var(--task-size);
+      font-weight: 950;
+      line-height: 1.2;
+      color: var(--yellow);
+      letter-spacing: 0.01em;
+      word-break: keep-all;
+    }
+
+    .task-line.two-lines {
+      flex-direction: column;
+      gap: 0.12em;
+    }
+
+    .notice-line {
+      font-size: var(--notice-size);
+      font-weight: 950;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+      word-break: keep-all;
+    }
+
+    .notice-highlight {
+      color: var(--yellow);
+      text-shadow: 0 0 12px rgba(255, 212, 0, 0.18);
+      white-space: nowrap;
+    }
+
+    .helper {
+      position: fixed;
+      right: 18px;
+      bottom: 12px;
+      color: rgba(255,255,255,0.22);
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .mode-label {
+      position: fixed;
+      left: 18px;
+      bottom: 12px;
+      color: rgba(255,255,255,0.18);
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 1100px) {
+      :root {
+        --top-size: clamp(26px, 4vw, 48px);
+        --time-label-size: clamp(26px, 4vw, 46px);
+        --time-size: clamp(44px, 6vw, 84px);
+        --task-size: clamp(38px, 5vw, 72px);
+        --notice-size: clamp(34px, 4.6vw, 64px);
+      }
+      .screen {
+        padding: 24px 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="screen" aria-label="32인치 모니터용 벽시계 화면">
+    <section class="top-line" aria-label="오늘 날짜와 요일">
+      <span>오늘은</span>
+      <span id="dateText">2026년 6월 12일</span>
+      <span id="weekdayText" class="weekday">금요일</span>
+      <span>입니다.</span>
+    </section>
+
+    <section class="time-line" aria-label="현재 시간">
+      <span class="time-label">현재 시간</span>
+      <span id="timeText" class="time-value">오전 07시 00분</span>
+    </section>
+
+    <section id="taskLine" class="task-line" aria-label="현재 할일">
+      <span id="taskText">지금은 노치원 갈 준비 시간</span>
+    </section>
+
+    <section id="noticeLine" class="notice-line" aria-label="노치원 안내">
+      <span id="noticeText">노치원 갈 시간 <span class="notice-highlight">1시간 25분</span> 남았습니다.</span>
+    </section>
+
+    <div id="modeLabel" class="mode-label">일반 모드</div>
+    <div id="helper" class="helper">화면 클릭 시 전체화면</div>
+  </main>
+
+  <script>
+    const PLACE_NAME = "노치원";
+
+    const GO_HOUR = 8;
+    const GO_MINUTE = 25;
+
+    const RETURN_HOME_HOUR = 17;
+    const RETURN_HOME_MINUTE = 25;
+
+    const COUNTDOWN_START_HOUR = 19;
+    const SUNDAY_COUNTDOWN_START_HOUR = 19;
+
+    const EXERCISE_START_HOUR = 17;
+    const EXERCISE_START_MINUTE = 25;
+    const SLEEP_START_HOUR = 21;
+    const SLEEP_END_HOUR = 7;
+    const PREPARE_START_HOUR = 7;
+
+    const TEMP_BRIGHT_SECONDS = 60;
+
+    const dateTextEl = document.getElementById("dateText");
+    const weekdayTextEl = document.getElementById("weekdayText");
+    const timeTextEl = document.getElementById("timeText");
+    const taskTextEl = document.getElementById("taskText");
+    const taskLineEl = document.getElementById("taskLine");
+    const noticeTextEl = document.getElementById("noticeText");
+    const modeLabelEl = document.getElementById("modeLabel");
+    const helperEl = document.getElementById("helper");
+
+    const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+    let tempBrightTimer = null;
+    let wakeLock = null;
+
+    function pad2(number) {
+      return String(number).padStart(2, "0");
+    }
+
+    function getDateText(now) {
+      return `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+    }
+
+    function getTimeText(now) {
+      const hour24 = now.getHours();
+      const minute = now.getMinutes();
+      const ampm = hour24 < 12 ? "오전" : "오후";
+      let hour12 = hour24 % 12;
+      if (hour12 === 0) hour12 = 12;
+      return `${ampm} ${pad2(hour12)}시 ${pad2(minute)}분`;
+    }
+
+    function isGoingDay(date) {
+      const day = date.getDay();
+      return day >= 1 && day <= 6;
+    }
+
+    function addDays(date, days) {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    }
+
+    function getGoTime(date) {
+      const result = new Date(date);
+      result.setHours(GO_HOUR, GO_MINUTE, 0, 0);
+      return result;
+    }
+
+    function getReturnHomeTime(date) {
+      const result = new Date(date);
+      result.setHours(RETURN_HOME_HOUR, RETURN_HOME_MINUTE, 0, 0);
+      return result;
+    }
+
+    function getNextGoingDateAfter(date) {
+      let candidate = addDays(date, 1);
+      for (let i = 0; i < 7; i++) {
+        if (isGoingDay(candidate)) return candidate;
+        candidate = addDays(candidate, 1);
+      }
+      return candidate;
+    }
+
+    function formatRemaining(ms) {
+      const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+        return `<span class="notice-highlight">${hours}시간 ${pad2(minutes)}분</span>`;
+      }
+      return `<span class="notice-highlight">${minutes}분</span>`;
+    }
+
+    function getTaskHtml(now) {
+      const day = now.getDay();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const prepareStart = PREPARE_START_HOUR * 60;
+      const goStart = GO_HOUR * 60 + GO_MINUTE;
+      const returnHome = RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
+      const exerciseStart = EXERCISE_START_HOUR * 60 + EXERCISE_START_MINUTE;
+      const sleepStart = SLEEP_START_HOUR * 60;
+      const sleepEnd = SLEEP_END_HOUR * 60;
+
+      if (currentMinutes >= sleepStart || currentMinutes < sleepEnd) {
+        return "지금은 잠 자는 시간";
+      }
+
+      if (day >= 1 && day <= 6 && currentMinutes >= prepareStart && currentMinutes < goStart) {
+        return `노치원 갈 준비를<br>이대수의 안내에 따르세요`;
+      }
+
+      if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < returnHome) {
+        return "지금은 인지 학습 시간";
+      }
+
+      if (currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
+        return "지금은 운동 시간";
+      }
+
+      return "지금은 편안한 휴식 시간";
+    }
+
+    function isPatientAwayAtNochiwon(now) {
+      if (!isGoingDay(now)) return false;
+      const goTime = getGoTime(now);
+      const returnHomeTime = getReturnHomeTime(now);
+      return now >= goTime && now < returnHomeTime;
+    }
+
+    function getNoticeHtml(now) {
+      const day = now.getDay();
+      const hour = now.getHours();
+      const todayGoTime = getGoTime(now);
+
+      if (isPatientAwayAtNochiwon(now)) {
+        return `지금은 ${PLACE_NAME} 있는 시간`;
+      }
+
+      if (day === 6 && hour >= COUNTDOWN_START_HOUR) {
+        return `내일은 ${PLACE_NAME} 쉬는 날입니다.`;
+      }
+      if (day === 0 && hour < SUNDAY_COUNTDOWN_START_HOUR) {
+        return `오늘은 ${PLACE_NAME} 쉬는 날입니다.`;
+      }
+
+      if (day === 0 && hour >= SUNDAY_COUNTDOWN_START_HOUR) {
+        const nextGoingDate = getNextGoingDateAfter(now);
+        const nextGoTime = getGoTime(nextGoingDate);
+        return `${PLACE_NAME} 갈 시간 ${formatRemaining(nextGoTime - now)} 남았습니다.`;
+      }
+
+      if (isGoingDay(now) && now < todayGoTime) {
+        return `${PLACE_NAME} 갈 시간 ${formatRemaining(todayGoTime - now)} 남았습니다.`;
+      }
+
+      if (day >= 1 && day <= 5 && hour >= COUNTDOWN_START_HOUR) {
+        const nextGoingDate = getNextGoingDateAfter(now);
+        const nextGoTime = getGoTime(nextGoingDate);
+        return `${PLACE_NAME} 갈 시간 ${formatRemaining(nextGoTime - now)} 남았습니다.`;
+      }
+
+      return `오늘은 ${PLACE_NAME} 가는 날입니다.`;
+    }
+
+    function updateDisplayMode(now) {
+      const isAway = isPatientAwayAtNochiwon(now);
+      document.body.classList.toggle("away-protect-mode", isAway);
+      modeLabelEl.textContent = isAway ? "보호 모드" : "일반 모드";
+
+      const minute = now.getMinutes();
+      const slot = Math.floor(minute / 5);
+      const offsets = [-10, -6, -2, 2, 6, 10];
+      const offsetX = offsets[slot % offsets.length];
+      const offsetY = offsets[(slot + 3) % offsets.length];
+      document.querySelector(".screen").style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    }
+
+    function brightenTemporarily() {
+      document.body.classList.add("temp-bright");
+      if (tempBrightTimer) clearTimeout(tempBrightTimer);
+      tempBrightTimer = setTimeout(() => {
+        document.body.classList.remove("temp-bright");
+      }, TEMP_BRIGHT_SECONDS * 1000);
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () => {
+            wakeLock = null;
+          });
+        }
+      } catch (error) {}
+    }
+
+    function updateClock() {
+      const now = new Date();
+
+      dateTextEl.textContent = getDateText(now);
+      weekdayTextEl.textContent = dayNames[now.getDay()];
+      timeTextEl.textContent = getTimeText(now);
+
+      const taskHtml = getTaskHtml(now);
+      taskTextEl.innerHTML = taskHtml;
+      taskLineEl.classList.toggle("two-lines", taskHtml.includes("<br>"));
+
+      noticeTextEl.innerHTML = getNoticeHtml(now);
+      updateDisplayMode(now);
+    }
+
+    function requestFullscreenOnce() {
+      const element = document.documentElement;
+      const request = element.requestFullscreen || element.webkitRequestFullscreen || element.msRequestFullscreen;
+
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
+
+      if (request) {
+        request.call(element).catch(() => {});
+      }
+
+      if (helperEl) {
+        helperEl.style.display = "none";
+      }
+    }
+
+    async function activateScreenMode() {
+      brightenTemporarily();
+      requestFullscreenOnce();
+      await requestWakeLock();
+    }
+
+    document.addEventListener("click", activateScreenMode);
+    document.addEventListener("touchstart", activateScreenMode, { once: true });
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible") {
+        await requestWakeLock();
+      }
+    });
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
