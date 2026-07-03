@@ -307,7 +307,7 @@
       }
 
       if (day >= 1 && day <= 6 && currentMinutes >= prepareStart && currentMinutes < goStart) {
-        return `노치원 갈 준비와 출발 시간은<br>이대수의 안내에 따르세요`;
+        return `노치원 갈 준비와 출발 시간은 이대수의 안내에 따르세요<br>노치원 버스타는 장소까지 반드시 이대수와 함께 갑니다`;
       }
 
       if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < returnHome) {
@@ -318,7 +318,7 @@
         return "지금은 운동 시간 입니다";
       }
 
-      return "지금은 편안한 휴식 시간";
+      return "지금은 편안한 휴식 시간 입니다";
     }
 
     function isPatientAwayAtNochiwon(now) {
