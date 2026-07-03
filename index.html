@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>벽시계 프로그램</title>
+  <title>벽시계 프로그램 V2.2</title>
 
   <style>
     :root {
@@ -248,7 +248,8 @@
       주요 시간 기준
       - 노치원 등원: 월~토 오전 8시 25분
       - 노치원 귀가: 월~토 오후 5시 25분
-      - 보호 모드: 월~토 08:25~17:25
+      - 8번 추가: 월~토 08:25~08:35 노치원 버스 타는 곳으로 출발 안내
+      - 보호 모드: 월~토 08:35~17:25
       - 토요일 밤/일요일 새벽/일요일 오전 문구는 엑셀 1~4번 항목 기준
       - 일반 모드: 그 외 시간
       - 화면 위치 이동: 일반/보호 모드 모두 5분마다 -10px ~ +10px
@@ -259,6 +260,10 @@
 
     const GO_HOUR = 8;
     const GO_MINUTE = 25;
+
+    // 8번 항목: 노치원 버스 타는 곳으로 출발 안내 종료 시각
+    const BUS_DEPART_END_HOUR = 8;
+    const BUS_DEPART_END_MINUTE = 35;
 
     const RETURN_HOME_HOUR = 17;
     const RETURN_HOME_MINUTE = 25;
@@ -376,13 +381,21 @@
       return `<span class="notice-highlight">${minutes}분</span>`;
     }
 
+    function getBusDepartEndTime(date) {
+      const result = new Date(date);
+      result.setHours(BUS_DEPART_END_HOUR, BUS_DEPART_END_MINUTE, 0, 0);
+      return result;
+    }
+
     function isPatientAwayAtNochiwon(now) {
       if (!isGoingDay(now)) return false;
 
-      const goTime = getGoTime(now);
+      const busDepartEndTime = getBusDepartEndTime(now);
       const returnHomeTime = getReturnHomeTime(now);
 
-      return now >= goTime && now < returnHomeTime;
+      // 08:25~08:35는 집에서 보는 출발 안내 시간이므로 일반 모드 유지.
+      // 실제 노치원/외출 보호 모드는 08:35부터 적용.
+      return now >= busDepartEndTime && now < returnHomeTime;
     }
 
     function countdownNotice(now, secondLine) {
@@ -405,6 +418,7 @@
 
       const prepareStart = PREPARE_START_HOUR * 60;
       const goStart = GO_HOUR * 60 + GO_MINUTE;
+      const busDepartEnd = BUS_DEPART_END_HOUR * 60 + BUS_DEPART_END_MINUTE;
       const returnHome = RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
       const exerciseStart = EXERCISE_START_HOUR * 60 + EXERCISE_START_MINUTE;
       const sleepStart = SLEEP_START_HOUR * 60;
@@ -460,7 +474,7 @@
         };
       }
 
-      // 월요일~토요일 오전 7시 ~ 노치원 등원 시간
+      // 7번: 월요일~토요일 오전 7시 ~ 노치원 등원 시간
       if (day >= 1 && day <= 6 && currentMinutes >= prepareStart && currentMinutes < goStart) {
         return {
           task: `${PLACE_NAME} 가는 준비는<br>이대수의 안내에 따르세요`,
@@ -468,8 +482,16 @@
         };
       }
 
-      // 월요일~토요일 노치원 등원 ~ 오후 5시 25분
-      if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < returnHome) {
+      // 8번: 월요일~토요일 노치원 등원 시간 ~ 오전 8시 35분
+      if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < busDepartEnd) {
+        return {
+          task: `지금 ${PLACE_NAME} 버스 타는 곳으로<br>출발 하세요`,
+          notice: `${PLACE_NAME} 갈 시간입니다.<br>${PLACE_NAME} 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다`
+        };
+      }
+
+      // 9번: 월요일~토요일 오전 8시 35분 ~ 오후 5시 25분
+      if (day >= 1 && day <= 6 && currentMinutes >= busDepartEnd && currentMinutes < returnHome) {
         return {
           task: "지금은 인지 학습 시간",
           notice: `지금은 ${PLACE_NAME}에 있는 시간`
