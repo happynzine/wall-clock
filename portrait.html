@@ -62,8 +62,8 @@
 
     /*
       세로형 TV용 보정:
-      - 브라우저가 가로 화면으로만 인식하는 TV를 물리적으로 세워 쓰는 경우,
-        화면 전체를 90도 회전시켜 세로형 화면처럼 보이게 합니다.
+      - TV/모니터를 오른쪽, 즉 시계방향으로 돌려 세워 쓰는 경우에 맞춘 설정입니다.
+      - 브라우저는 가로 화면으로 인식하지만, 실제로는 세로 화면처럼 보이도록 보정합니다.
       - 실제 세로 화면으로 인식되는 태블릿/모니터에서는 회전하지 않습니다.
     */
     body.rotate-for-portrait .app-viewport {
@@ -71,7 +71,11 @@
       height: 100vw;
       min-height: 100vw;
       transform-origin: top left;
-      transform: rotate(90deg) translateY(-100%);
+      /*
+        모니터를 오른쪽으로 돌려 세운 경우:
+        화면 내용은 반대로 90도 보정해야 사용자가 정방향으로 볼 수 있습니다.
+      */
+      transform: rotate(-90deg) translateX(-100%);
     }
 
     .screen {
