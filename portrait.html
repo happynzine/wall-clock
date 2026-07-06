@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>벽시계 프로그램 - 세로 모드</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
+
+    :root {
+      --bg: #000000;
+      --text: #ffffff;
+      --yellow: #ffd400;
+      --muted: #ffffff;
+
+      /* 세로 모드용 폰트 크기 */
+      --look-size: clamp(27px, 3.6vw, 55px);
+      --date-size: clamp(20px, 2.5vw, 38px);
+      --weekday-size: clamp(31px, 4.3vw, 66px);
+      --time-label-size: clamp(20px, 2.7vw, 41px);
+      --time-size: clamp(36px, 5.1vw, 78px);
+      --task-size: clamp(29px, 4.3vw, 64px);
+      --notice-size: clamp(24px, 3.4vw, 50px);
+      --small-ui-size: 10px;
+    }
+
+    .app-viewport {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /*
+      세로형 TV용 보정:
+      - 브라우저가 가로 화면으로만 인식하는 TV를 물리적으로 세워 쓰는 경우,
+        화면 전체를 90도 회전시켜 세로형 화면처럼 보이게 합니다.
+      - 실제 세로 화면으로 인식되는 태블릿/모니터에서는 회전하지 않습니다.
+    */
+    body.rotate-for-portrait .app-viewport {
+      width: 100vh;
+      height: 100vw;
+      min-height: 100vw;
+      transform-origin: top left;
+      transform: rotate(90deg) translateY(-100%);
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      grid-template-rows: 0.78fr 1.3fr 1.05fr 1.55fr 1.65fr;
+      align-items: center;
+      justify-items: center;
+      padding: 3.4vh 4.6vw;
+      text-align: center;
+      transition: transform 0.8s ease, opacity 0.8s ease, filter 0.8s ease;
+    }
+
+    .line {
+      width: min(90vw, 980px);
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      justify-self: center;
+      gap: 0.46em;
+      flex-wrap: wrap;
+      white-space: normal;
+      word-break: keep-all;
+      overflow-wrap: normal;
+      text-align: center;
+    }
+
+    body.rotate-for-portrait .line {
+      width: min(90vh, 980px);
+    }
+
+    .look-line {
+      color: var(--yellow);
+      font-size: var(--look-size);
+      font-weight: 950;
+      line-height: 1.08;
+      letter-spacing: 0.04em;
+    }
+
+    .date-line {
+      flex-direction: column;
+      gap: 0.38em;
+      font-size: var(--date-size);
+      font-weight: 900;
+      line-height: 1.16;
+      letter-spacing: 0.01em;
+    }
+
+    .date-line .today-text {
+      display: block;
+      width: 100%;
+    }
+
+    .weekday-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.45em;
+      width: 100%;
+    }
+
+    .weekday {
+      color: var(--yellow);
+      font-size: var(--weekday-size);
+      line-height: 1;
+      text-decoration-line: underline;
+      text-decoration-thickness: 0.07em;
+      text-underline-offset: 0.14em;
+    }
+
+    .time-line {
+      line-height: 1.05;
+      gap: 1.05em;
+      align-items: center;
+    }
+
+    .time-label {
+      font-size: var(--time-label-size);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      transform: translateY(0.03em);
+    }
+
+    .time-value {
+      font-size: var(--time-size);
+      font-weight: 950;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .task-line {
+      color: var(--yellow);
+      font-size: var(--task-size);
+      line-height: 1.2;
+      font-weight: 950;
+      letter-spacing: 0.01em;
+    }
+
+    .notice-line {
+      width: min(88vw, 920px);
+      justify-content: center;
+      text-align: center;
+      font-size: var(--notice-size);
+      line-height: 1.28;
+      font-weight: 950;
+      letter-spacing: 0.01em;
+    }
+
+    body.rotate-for-portrait .notice-line {
+      width: min(88vh, 920px);
+    }
+
+    .task-line > span {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+
+    .notice-line > span {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+
+    .notice-highlight {
+      color: var(--yellow);
+      white-space: nowrap;
+      text-shadow: 0 0 10px rgba(255, 212, 0, 0.22);
+    }
+
+    body.away-protect-mode .screen {
+      opacity: 0.3;
+      filter: brightness(0.55);
+    }
+
+    body.temp-bright .screen {
+      opacity: 1;
+      filter: brightness(1);
+    }
+
+    .small-label {
+      position: fixed;
+      bottom: 10px;
+      color: rgba(255,255,255,0.18);
+      font-size: var(--small-ui-size);
+      z-index: 5;
+    }
+
+    .mode-label {
+      left: 14px;
+    }
+
+    .helper-label {
+      right: 14px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="app-viewport">
+    <main class="screen" aria-label="벽시계 프로그램 - 세로 모드">
+      <section class="line look-line" aria-label="주의 문구">
+        <span id="lookText">여기를 보세요</span>
+      </section>
+
+      <section class="line date-line" aria-label="오늘 날짜와 요일">
+
+      <span id="dateText" class="today-text">2026년 6월 12일</span>
+      <span class="weekday-row">
+        <span>오늘은</span>
+        <span id="weekdayText" class="weekday">금요일</span>
+        <span>입니다</span>
+      </span>
+
+      </section>
+
+      <section class="line time-line" aria-label="현재 시간">
+        <span class="time-label">현재 시간</span>
+        <span id="timeText" class="time-value">아침 07시 00분</span>
+      </section>
+
+      <section class="line task-line" aria-label="현재 할일">
+        <span id="taskText">노치원 가는 준비는 이대수의 안내에 따르세요</span>
+      </section>
+
+      <section class="line notice-line" aria-label="보조 안내">
+        <span id="noticeText">노치원 갈 시간 <span class="notice-highlight">1시간 25분</span> 남았습니다.</span>
+      </section>
+
+      <div id="modeLabel" class="small-label mode-label">일반 모드</div>
+      <div id="helperLabel" class="small-label helper-label">화면 클릭 시 전체화면</div>
+    </main>
+  </div>
+
+  <script>
+    /*
+      중기 치매 환자용 벽시계 프로그램
+      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정2.xlsx
+      - 시트: 중기
+      - 시계표시 문구 1번~12번 반영
+    */
+
+    const PLACE_NAME = "노치원";
+
+    // 엑셀의 최신 시계표시 문구 기준
+    const GO_HOUR = 8;
+    const GO_MINUTE = 25;
+
+    const PREPARE_START_HOUR = 7;
+    const MASK_START_HOUR = 8;
+    const MASK_START_MINUTE = 15;
+
+    const BUS_DEPART_END_HOUR = 8;
+    const BUS_DEPART_END_MINUTE = 35;
+
+    const RETURN_HOME_HOUR = 17;
+    const RETURN_HOME_MINUTE = 20;
+
+    const EXERCISE_START_HOUR = 17;
+    const EXERCISE_START_MINUTE = 20;
+
+    const SLEEP_START_HOUR = 21;
+    const SLEEP_END_HOUR = 7;
+
+    const SUNDAY_REST_END_HOUR = 13;
+
+    const TEMP_BRIGHT_SECONDS = 60;
+    const ORIENTATION_LOCK = "portrait";
+
+    const dateTextEl = document.getElementById("dateText");
+    const weekdayTextEl = document.getElementById("weekdayText");
+    const timeTextEl = document.getElementById("timeText");
+    const taskTextEl = document.getElementById("taskText");
+    const noticeTextEl = document.getElementById("noticeText");
+    const modeLabelEl = document.getElementById("modeLabel");
+    const helperLabelEl = document.getElementById("helperLabel");
+
+    const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+    let tempBrightTimer = null;
+    let wakeLock = null;
+
+    function pad2(number) {
+      return String(number).padStart(2, "0");
+    }
+
+    function getDateText(now) {
+      return `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+    }
+
+    function getTimePeriod(hour24) {
+      if (hour24 >= 19 && hour24 < 24) return "저녁";
+      if (hour24 >= 0 && hour24 < 6) return "새벽";
+      if (hour24 >= 6 && hour24 < 9) return "아침";
+      if (hour24 >= 9 && hour24 < 12) return "오전";
+      return "오후";
+    }
+
+    function getTimeText(now) {
+      const hour24 = now.getHours();
+      const minute = now.getMinutes();
+      const period = getTimePeriod(hour24);
+
+      let hour12 = hour24 % 12;
+      if (hour12 === 0) hour12 = 12;
+
+      return `${period} ${pad2(hour12)}시 ${pad2(minute)}분`;
+    }
+
+    function getMinutes(now) {
+      return now.getHours() * 60 + now.getMinutes();
+    }
+
+    function isGoingDay(date) {
+      const day = date.getDay();
+      return day >= 1 && day <= 6;
+    }
+
+    function addDays(date, days) {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    }
+
+    function getTimeOnDate(date, hour, minute) {
+      const result = new Date(date);
+      result.setHours(hour, minute, 0, 0);
+      return result;
+    }
+
+    function getGoTime(date) {
+      return getTimeOnDate(date, GO_HOUR, GO_MINUTE);
+    }
+
+    function getBusDepartEndTime(date) {
+      return getTimeOnDate(date, BUS_DEPART_END_HOUR, BUS_DEPART_END_MINUTE);
+    }
+
+    function getReturnHomeTime(date) {
+      return getTimeOnDate(date, RETURN_HOME_HOUR, RETURN_HOME_MINUTE);
+    }
+
+    function getNextGoingDateAfter(date) {
+      let candidate = new Date(date);
+
+      for (let i = 0; i < 8; i++) {
+        if (i > 0) candidate = addDays(candidate, 1);
+        if (isGoingDay(candidate)) {
+          const target = getGoTime(candidate);
+          if (target > date) return candidate;
+        }
+      }
+
+      return addDays(date, 1);
+    }
+
+    function formatRemaining(ms) {
+      const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+        return `<span class="notice-highlight">${hours}시간 ${pad2(minutes)}분</span>`;
+      }
+
+      return `<span class="notice-highlight">${minutes}분</span>`;
+    }
+
+    function countdownText(now) {
+      const targetDate = getNextGoingDateAfter(now);
+      const targetTime = getGoTime(targetDate);
+      return formatRemaining(targetTime - now);
+    }
+
+    function normalizeText(text, now) {
+      if (!text) return "";
+
+      return String(text)
+        .replace(/<br\s*\/?>/gi, "<br>")
+        .replace(/\?\?시간\s*\?\?분/g, countdownText(now))
+        .replace(/\?시간\s*\?분/g, countdownText(now));
+    }
+
+    function makeState(rowNo, task, notice, protectMode = false) {
+      return {
+        rowNo,
+        task,
+        notice,
+        protectMode
+      };
+    }
+
+    function getState(now) {
+      const day = now.getDay(); // 0 일, 1 월, ... 6 토
+      const currentMinutes = getMinutes(now);
+
+      const prepareStart = PREPARE_START_HOUR * 60;
+      const maskStart = MASK_START_HOUR * 60 + MASK_START_MINUTE;
+      const goStart = GO_HOUR * 60 + GO_MINUTE;
+      const busDepartEnd = BUS_DEPART_END_HOUR * 60 + BUS_DEPART_END_MINUTE;
+      const returnHome = RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
+      const exerciseStart = EXERCISE_START_HOUR * 60 + EXERCISE_START_MINUTE;
+      const sleepStart = SLEEP_START_HOUR * 60;
+      const sleepEnd = SLEEP_END_HOUR * 60;
+      const sundayRestEnd = SUNDAY_REST_END_HOUR * 60;
+
+      // 1. 토요일 오후 5시20분 ~ 오후 9시까지
+      if (day === 6 && currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
+        return makeState(
+          1,
+          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
+          "내일은 일요일입니다. 노치원 쉬는 날입니다."
+        );
+      }
+
+      // 2. 토요일 오후 9시 ~ 토요일 오후 11시 59분
+      if (day === 6 && currentMinutes >= sleepStart) {
+        return makeState(
+          2,
+          "지금은 잠 자는 시간 입니다.",
+          "내일은 일요일입니다. 노치원 쉬는 날입니다.<br>침대로 가서 잠을 자세요"
+        );
+      }
+
+      // 3. 일요일 0시 ~ 일요일 오전 6시
+      if (day === 0 && currentMinutes < 6 * 60) {
+        return makeState(
+          3,
+          "지금은 잠 자는 시간 입니다.",
+          "오늘은 일요일입니다. 노치원 쉬는 날입니다.<br>침대로 가서 잠을 자세요"
+        );
+      }
+
+      // 4. 일요일 오전 6시 ~ 일요일 오후 12시 59분까지
+      if (day === 0 && currentMinutes >= 6 * 60 && currentMinutes < sundayRestEnd) {
+        return makeState(
+          4,
+          "지금은 휴식하는 시간입니다.",
+          "오늘은 일요일입니다. 노치원 쉬는 날입니다."
+        );
+      }
+
+      // 5. 일요일 오후 1시 ~ 일요일 오후 9시까지
+      if (day === 0 && currentMinutes >= sundayRestEnd && currentMinutes < sleepStart) {
+        return makeState(
+          5,
+          "지금은 휴식하는 시간입니다.",
+          "오늘은 일요일입니다. 노치원 쉬는 날입니다.<br>운동을 하거나 휴식을 하세요"
+        );
+      }
+
+      // 6. 일요일 오후 9시 ~ 월요일 오전 7시까지
+      if ((day === 0 && currentMinutes >= sleepStart) || (day === 1 && currentMinutes < sleepEnd)) {
+        return makeState(
+          6,
+          "지금은 잠 자는 시간 입니다.",
+          "노치원 갈려면 시간이 엄청 많이 남았습니다.<br>침대로 가서 잠을 자세요"
+        );
+      }
+
+      // 7. 월요일~토요일 오전 7시 ~ 오전 8시 15분까지
+      if (day >= 1 && day <= 6 && currentMinutes >= prepareStart && currentMinutes < maskStart) {
+        return makeState(
+          7,
+          "노치원 가는 준비는 이대수의 안내에 따르세요",
+          "노치원 갈 시간 ??시간 ??분 남았습니다<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
+        );
+      }
+
+      // 8. 월요일~토요일 오전 8시15분 ~ 노치원 등원 시간까지
+      if (day >= 1 && day <= 6 && currentMinutes >= maskStart && currentMinutes < goStart) {
+        return makeState(
+          8,
+          "마스크와 모자를 착용하고,<br>이대수의 안내를 따르세요",
+          "노치원 갈 시간 ??시간 ??분 남았습니다<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
+        );
+      }
+
+      // 9. 월요일~토요일 노치원 등원 시간 ~ 오전 8시 35분까지
+      if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < busDepartEnd) {
+        return makeState(
+          9,
+          "지금 노치원 버스 타는 곳으로<br>출발 하세요",
+          "노치원 갈 시간입니다.<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
+        );
+      }
+
+      // 10. 월요일~토요일 오전 8시 35분 ~ 오후 5시 20분까지
+      if (day >= 1 && day <= 6 && currentMinutes >= busDepartEnd && currentMinutes < returnHome) {
+        return makeState(
+          10,
+          "지금은 인지 학습 시간",
+          "지금은 노치원에 있는 시간",
+          true
+        );
+      }
+
+      // 11. 월요일~금요일 오후 5시20분 ~ 오후 9시까지
+      if (day >= 1 && day <= 5 && currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
+        return makeState(
+          11,
+          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
+          "노치원 갈려면 시간이 엄청 많이 남았습니다.<br>운동을 하거나 휴식을 하세요"
+        );
+      }
+
+      // 12. 월요일~금요일 오후 9시 ~ 다음날 오전 7시까지
+      if ((day >= 1 && day <= 5 && currentMinutes >= sleepStart) || (day >= 2 && day <= 6 && currentMinutes < sleepEnd)) {
+        return makeState(
+          12,
+          "지금은 잠 자는 시간 입니다.",
+          "노치원 갈려면 시간이 엄청 많이 남았습니다.<br>시간 많이 남았습니다. 침대로 가서 잠을 자세요"
+        );
+      }
+
+      return makeState(
+        0,
+        "지금은 휴식하는 시간입니다.",
+        "오늘은 편안하게 쉬는 시간입니다."
+      );
+    }
+
+    function updateDisplayMode(now, state) {
+      const protectMode = Boolean(state.protectMode);
+
+      document.body.classList.toggle("away-protect-mode", protectMode);
+
+      if (modeLabelEl) {
+        modeLabelEl.textContent = protectMode ? "보호 모드" : "일반 모드";
+      }
+
+      // 번인 방지: 일반/보호 모드 모두 5분마다 -10px ~ +10px 이동
+      const minute = now.getMinutes();
+      const slot = Math.floor(minute / 5);
+      const offsets = [-10, -6, -2, 2, 6, 10];
+      const offsetX = offsets[slot % offsets.length];
+      const offsetY = offsets[(slot + 3) % offsets.length];
+
+      document.querySelector(".screen").style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const state = getState(now);
+
+      dateTextEl.textContent = getDateText(now);
+      weekdayTextEl.textContent = dayNames[now.getDay()];
+      timeTextEl.textContent = getTimeText(now);
+      taskTextEl.innerHTML = normalizeText(state.task, now);
+      noticeTextEl.innerHTML = normalizeText(state.notice, now);
+
+      updateDisplayMode(now, state);
+      updatePortraitRotation();
+    }
+
+    function updatePortraitRotation() {
+      const isPortraitFile = ORIENTATION_LOCK === "portrait";
+      if (!isPortraitFile) return;
+
+      const shouldRotate = window.innerWidth > window.innerHeight;
+      document.body.classList.toggle("rotate-for-portrait", shouldRotate);
+    }
+
+    function brightenTemporarily() {
+      document.body.classList.add("temp-bright");
+
+      if (tempBrightTimer) {
+        clearTimeout(tempBrightTimer);
+      }
+
+      tempBrightTimer = setTimeout(() => {
+        document.body.classList.remove("temp-bright");
+      }, TEMP_BRIGHT_SECONDS * 1000);
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () => {
+            wakeLock = null;
+          });
+        }
+      } catch (error) {
+        // 브라우저에 따라 지원하지 않을 수 있습니다.
+      }
+    }
+
+    function requestFullscreenOnce() {
+      const element = document.documentElement;
+      const request =
+        element.requestFullscreen ||
+        element.webkitRequestFullscreen ||
+        element.msRequestFullscreen;
+
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock(ORIENTATION_LOCK).catch(() => {});
+      }
+
+      if (request) {
+        request.call(element).catch(() => {});
+      }
+
+      if (helperLabelEl) {
+        helperLabelEl.style.display = "none";
+      }
+    }
+
+    async function activateScreenMode() {
+      brightenTemporarily();
+      requestFullscreenOnce();
+      await requestWakeLock();
+    }
+
+    document.addEventListener("click", activateScreenMode);
+    document.addEventListener("touchstart", activateScreenMode, { once: true });
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible") {
+        await requestWakeLock();
+      }
+    });
+
+    window.addEventListener("resize", updatePortraitRotation);
+    window.addEventListener("orientationchange", updatePortraitRotation);
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
