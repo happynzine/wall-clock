@@ -281,9 +281,9 @@
   <script>
     /*
       중기 치매 환자용 벽시계 프로그램
-      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정2.xlsx
+      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정3.xlsx
       - 시트: 중기
-      - 시계표시 문구 1번~12번 반영
+      - 시계표시 문구 1번~13번 반영
     */
 
     const PLACE_NAME = "노치원";
@@ -304,6 +304,9 @@
 
     const EXERCISE_START_HOUR = 17;
     const EXERCISE_START_MINUTE = 20;
+
+    const BED_GUIDE_START_HOUR = 20;
+    const BED_GUIDE_END_HOUR = 22;
 
     const SLEEP_START_HOUR = 21;
     const SLEEP_END_HOUR = 7;
@@ -446,6 +449,8 @@
       const busDepartEnd = BUS_DEPART_END_HOUR * 60 + BUS_DEPART_END_MINUTE;
       const returnHome = RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
       const exerciseStart = EXERCISE_START_HOUR * 60 + EXERCISE_START_MINUTE;
+      const bedGuideStart = BED_GUIDE_START_HOUR * 60;
+      const bedGuideEnd = BED_GUIDE_END_HOUR * 60;
       const sleepStart = SLEEP_START_HOUR * 60;
       const sleepEnd = SLEEP_END_HOUR * 60;
       const sundayRestEnd = SUNDAY_REST_END_HOUR * 60;
@@ -517,7 +522,7 @@
       if (day >= 1 && day <= 6 && currentMinutes >= maskStart && currentMinutes < goStart) {
         return makeState(
           8,
-          "마스크와 모자를 착용하고,<br>이대수의 안내를 따르세요",
+          "마스크와  모자를 착용하고, 이대수의 안내를 따르세요",
           "노치원 갈 시간 ??시간 ??분 남았습니다<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
         );
       }
@@ -526,7 +531,7 @@
       if (day >= 1 && day <= 6 && currentMinutes >= goStart && currentMinutes < busDepartEnd) {
         return makeState(
           9,
-          "지금 노치원 버스 타는 곳으로<br>출발 하세요",
+          "지금 노치원 버스 타는 곳으로 출발 하세요",
           "노치원 갈 시간입니다.<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
         );
       }
@@ -541,21 +546,32 @@
         );
       }
 
-      // 11. 월요일~금요일 오후 5시20분 ~ 오후 9시까지
-      if (day >= 1 && day <= 5 && currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
+      // 12. 월요일~금요일 오후 8시 ~ 오후 10시
+      // 기존 11번 운동 시간과 겹치므로, 12번을 먼저 적용합니다.
+      if (day >= 1 && day <= 5 && currentMinutes >= bedGuideStart && currentMinutes < bedGuideEnd) {
         return makeState(
-          11,
-          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
-          "노치원은 내일 갑니다.<br>지금은 운동을 하거나 휴식을 하세요"
+          12,
+          "지금 침대로 가서 주무세요",
+          "노치원은 내일 갑니다.<br>지금은 잠 자는 시간입니다. 침대서 가서 주무세요."
         );
       }
 
-      // 12. 월요일~금요일 오후 9시 ~ 다음날 오전 7시까지
-      if ((day >= 1 && day <= 5 && currentMinutes >= sleepStart) || (day >= 2 && day <= 6 && currentMinutes < sleepEnd)) {
+      // 11. 월요일~금요일 오후 5시20분 ~ 오후 8시까지
+      // 엑셀에는 오후 9시까지로 되어 있으나, 추가된 12번과 겹치지 않도록 오후 8시 전까지 적용합니다.
+      if (day >= 1 && day <= 5 && currentMinutes >= exerciseStart && currentMinutes < bedGuideStart) {
         return makeState(
-          12,
+          11,
+          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
+          "노치원은 내일 갑니다.<br>운동을 하거나 휴식을 하세요"
+        );
+      }
+
+      // 13. 월요일~금요일 오후 10시 ~ 다음날 오전 7시까지
+      if ((day >= 1 && day <= 5 && currentMinutes >= bedGuideEnd) || (day >= 2 && day <= 6 && currentMinutes < sleepEnd)) {
+        return makeState(
+          13,
           "지금은 잠 자는 시간 입니다.",
-          "노치원 갈려면 시간이 엄청 많이 남았습니다.<br>침대로 가서 잠을 자세요"
+          "노치원 갈려면 시간이 엄청 많이 남았습니다.<br>시간 많이 남았습니다. 침대로 가서 잠을 자세요"
         );
       }
 
