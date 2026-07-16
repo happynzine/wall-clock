@@ -223,16 +223,16 @@
       </section>
 
       <div id="modeLabel" class="small-label mode-label">일반 모드</div>
-      <div id="helperLabel" class="small-label helper-label">화면 클릭 시 전체화면</div>
+      <div id="helperLabel" class="small-label helper-label">화면 클릭 시 전체화면/음성 활성화</div>
     </main>
   </div>
 
   <script>
     /*
       중기 치매 환자용 벽시계 프로그램
-      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정3.xlsx
+      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정4.xlsx
       - 시트: 중기
-      - 시계표시 문구 1번~13번 반영
+      - 시계표시 문구 1번~13번 및 음성 안내 반영
     */
 
     const PLACE_NAME = "노치원";
@@ -255,7 +255,7 @@
     const EXERCISE_START_MINUTE = 20;
 
     const BED_GUIDE_START_HOUR = 20;
-    const BED_GUIDE_END_HOUR = 22;
+    const BED_GUIDE_END_HOUR = 24;
 
     const SLEEP_START_HOUR = 21;
     const SLEEP_END_HOUR = 7;
@@ -277,6 +277,115 @@
 
     let tempBrightTimer = null;
     let wakeLock = null;
+
+    /*
+      음성 안내 기능
+      - 브라우저 TTS(Web Speech API)를 사용합니다.
+      - TV/크롬 자동 재생 제한 때문에 화면을 한 번 클릭해야 음성 안내가 활성화됩니다.
+      - 같은 날짜/시간의 안내는 새로고침해도 한 번만 재생되도록 localStorage에 기록합니다.
+    */
+    const VOICE_GUIDE_TEXT = "원주금님! 지금 벽시계에서 안내하는 내용을 읽어 주세요";
+
+    const VOICE_ALERTS = [
+      { rowNo: 8, days: [1, 2, 3, 4, 5, 6], hour: 8, minute: 15, sequence: 1, text: VOICE_GUIDE_TEXT },
+      { rowNo: 8, days: [1, 2, 3, 4, 5, 6], hour: 8, minute: 17, sequence: 2, text: VOICE_GUIDE_TEXT },
+      { rowNo: 12, days: [1, 2, 3, 4, 5], hour: 20, minute: 0, sequence: 1, text: VOICE_GUIDE_TEXT },
+      { rowNo: 12, days: [1, 2, 3, 4, 5], hour: 20, minute: 5, sequence: 2, text: VOICE_GUIDE_TEXT }
+    ];
+
+    let voiceEnabled = false;
+    let koreanVoices = [];
+
+    function refreshVoiceList() {
+      if (!("speechSynthesis" in window)) return;
+
+      const voices = window.speechSynthesis.getVoices();
+      koreanVoices = voices.filter((voice) => {
+        const lang = String(voice.lang || "").toLowerCase();
+        const name = String(voice.name || "").toLowerCase();
+        return lang.includes("ko") || name.includes("korean") || name.includes("한국");
+      });
+    }
+
+    function enableVoiceGuide() {
+      voiceEnabled = true;
+      refreshVoiceList();
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.resume();
+      }
+    }
+
+    function getVoiceDateKey(now) {
+      return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    }
+
+    function getVoiceStorageValue(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function setVoiceStorageValue(key, value) {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch (error) {
+        // localStorage 사용이 막힌 브라우저에서는 중복 방지를 메모리 수준으로만 처리합니다.
+      }
+    }
+
+    function speakVoiceMessage(text) {
+      if (!voiceEnabled) return;
+      if (!("speechSynthesis" in window)) return;
+
+      refreshVoiceList();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ko-KR";
+      utterance.rate = 0.82;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      if (koreanVoices.length > 0) {
+        utterance.voice = koreanVoices[0];
+      }
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function checkVoiceAlerts(now, state) {
+      if (!voiceEnabled) return;
+
+      const currentDay = now.getDay();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      const alert = VOICE_ALERTS.find((item) => {
+        return item.rowNo === state.rowNo &&
+          item.days.includes(currentDay) &&
+          item.hour === currentHour &&
+          item.minute === currentMinute;
+      });
+
+      if (!alert) return;
+
+      const storageKey = "wallClockLastVoiceAlert";
+      const alertKey = `${getVoiceDateKey(now)}-${pad2(alert.hour)}:${pad2(alert.minute)}-${alert.rowNo}-${alert.sequence}`;
+
+      if (getVoiceStorageValue(storageKey) === alertKey) return;
+
+      setVoiceStorageValue(storageKey, alertKey);
+      speakVoiceMessage(alert.text);
+    }
+
+    if ("speechSynthesis" in window) {
+      refreshVoiceList();
+      window.speechSynthesis.onvoiceschanged = refreshVoiceList;
+    }
+
 
     function pad2(number) {
       return String(number).padStart(2, "0");
@@ -495,13 +604,13 @@
         );
       }
 
-      // 12. 월요일~금요일 오후 8시 ~ 오후 10시
+      // 12. 월요일~금요일 오후 8시 ~ 오후 11시 59분
       // 기존 11번 운동 시간과 겹치므로, 12번을 먼저 적용합니다.
       if (day >= 1 && day <= 5 && currentMinutes >= bedGuideStart && currentMinutes < bedGuideEnd) {
         return makeState(
           12,
           "지금 침대로 가서 주무세요",
-          "노치원은 내일 갑니다.<br>지금은 잠 자는 시간입니다. 침대로 가서 주무세요."
+          "노치원은 내일 갑니다.<br>지금은 잠 자는 시간입니다. 침대서 가서 주무세요."
         );
       }
 
@@ -515,8 +624,8 @@
         );
       }
 
-      // 13. 월요일~금요일 오후 10시 ~ 다음날 오전 7시까지
-      if ((day >= 1 && day <= 5 && currentMinutes >= bedGuideEnd) || (day >= 2 && day <= 6 && currentMinutes < sleepEnd)) {
+      // 13. 월요일~금요일 자정 ~ 오전 7시까지
+      if (day >= 2 && day <= 6 && currentMinutes < sleepEnd) {
         return makeState(
           13,
           "지금은 잠 자는 시간 입니다.",
@@ -561,6 +670,7 @@
       noticeTextEl.innerHTML = normalizeText(state.notice, now);
 
       updateDisplayMode(now, state);
+      checkVoiceAlerts(now, state);
       updatePortraitRotation();
     }
 
@@ -619,7 +729,13 @@
 
     async function activateScreenMode() {
       brightenTemporarily();
+      enableVoiceGuide();
       requestFullscreenOnce();
+
+      const now = new Date();
+      const state = getState(now);
+      checkVoiceAlerts(now, state);
+
       await requestWakeLock();
     }
 
