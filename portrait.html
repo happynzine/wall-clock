@@ -246,7 +246,7 @@
   <div class="app-viewport">
     <main class="screen" aria-label="벽시계 프로그램 - 세로 모드">
       <section class="line look-line" aria-label="주의 문구">
-        <span id="lookText">원금주님! 여기를 보세요!</span>
+        <span id="lookText">이곳은 원금주님의 오목동 집입니다.</span>
       </section>
 
       <section class="line date-line" aria-label="오늘 날짜와 요일">
@@ -281,7 +281,7 @@
   <script>
     /*
       중기 치매 환자용 벽시계 프로그램
-      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정4.xlsx
+      - 엑셀 파일: 벽시계 프로그램 제작 조건 항목_수정11.xlsx
       - 시트: 중기
       - 시계표시 문구 1번~13번 및 음성 안내 반영
     */
@@ -300,15 +300,18 @@
     const BUS_DEPART_END_MINUTE = 35;
 
     const RETURN_HOME_HOUR = 17;
-    const RETURN_HOME_MINUTE = 20;
+    const RETURN_HOME_MINUTE = 10;
 
     const EXERCISE_START_HOUR = 17;
-    const EXERCISE_START_MINUTE = 20;
+    const EXERCISE_START_MINUTE = 10;
+    const SATURDAY_EXERCISE_START_MINUTE = 20;
+    const PROTECT_START_HOUR = 8;
+    const PROTECT_START_MINUTE = 30;
 
     const BED_GUIDE_START_HOUR = 20;
     const BED_GUIDE_END_HOUR = 24;
 
-    const SLEEP_START_HOUR = 21;
+    const SLEEP_START_HOUR = 20;
     const SLEEP_END_HOUR = 7;
 
     const SUNDAY_REST_END_HOUR = 13;
@@ -558,22 +561,23 @@
       const busDepartEnd = BUS_DEPART_END_HOUR * 60 + BUS_DEPART_END_MINUTE;
       const returnHome = RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
       const exerciseStart = EXERCISE_START_HOUR * 60 + EXERCISE_START_MINUTE;
+      const saturdayExerciseStart = EXERCISE_START_HOUR * 60 + SATURDAY_EXERCISE_START_MINUTE;
       const bedGuideStart = BED_GUIDE_START_HOUR * 60;
       const bedGuideEnd = BED_GUIDE_END_HOUR * 60;
       const sleepStart = SLEEP_START_HOUR * 60;
       const sleepEnd = SLEEP_END_HOUR * 60;
       const sundayRestEnd = SUNDAY_REST_END_HOUR * 60;
 
-      // 1. 토요일 오후 5시20분 ~ 오후 9시까지
-      if (day === 6 && currentMinutes >= exerciseStart && currentMinutes < sleepStart) {
+      // 1. 토요일 오후 5시20분 ~ 오후 8시까지
+      if (day === 6 && currentMinutes >= saturdayExerciseStart && currentMinutes < sleepStart) {
         return makeState(
           1,
-          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
+          "지금운 운동하는 시간입니다. <br> 거실에서 걷기 운동을 하세요",
           "내일은 일요일입니다. 노치원 쉬는 날입니다."
         );
       }
 
-      // 2. 토요일 오후 9시 ~ 토요일 오후 11시 59분
+      // 2. 토요일 오후 8시 ~ 토요일 오후 11시 59분
       if (day === 6 && currentMinutes >= sleepStart) {
         return makeState(
           2,
@@ -600,7 +604,7 @@
         );
       }
 
-      // 5. 일요일 오후 1시 ~ 일요일 오후 9시까지
+      // 5. 일요일 오후 1시 ~ 일요일 오후 8시까지
       if (day === 0 && currentMinutes >= sundayRestEnd && currentMinutes < sleepStart) {
         return makeState(
           5,
@@ -609,7 +613,7 @@
         );
       }
 
-      // 6. 일요일 오후 9시 ~ 월요일 오전 7시까지
+      // 6. 일요일 오후 8시 ~ 월요일 오전 7시까지
       if ((day === 0 && currentMinutes >= sleepStart) || (day === 1 && currentMinutes < sleepEnd)) {
         return makeState(
           6,
@@ -641,11 +645,12 @@
         return makeState(
           9,
           "지금 노치원 버스 타는 곳으로 출발 하세요",
-          "노치원 갈 시간입니다.<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다"
+          "노치원 갈 시간입니다.<br>노치원 버스 타러 갈 때는 반드시 이대수와 함께 가야 합니다",
+          currentMinutes >= PROTECT_START_HOUR * 60 + PROTECT_START_MINUTE
         );
       }
 
-      // 10. 월요일~토요일 오전 8시 35분 ~ 오후 5시 20분까지
+      // 10. 월요일~토요일 오전 8시 35분 ~ 오후 5시 10분까지 (9번 우선)
       if (day >= 1 && day <= 6 && currentMinutes >= busDepartEnd && currentMinutes < returnHome) {
         return makeState(
           10,
@@ -656,7 +661,6 @@
       }
 
       // 12. 월요일~금요일 오후 8시 ~ 오후 11시 59분
-      // 기존 11번 운동 시간과 겹치므로, 12번을 먼저 적용합니다.
       if (day >= 1 && day <= 5 && currentMinutes >= bedGuideStart && currentMinutes < bedGuideEnd) {
         return makeState(
           12,
@@ -665,17 +669,16 @@
         );
       }
 
-      // 11. 월요일~금요일 오후 5시20분 ~ 오후 8시까지
-      // 엑셀에는 오후 9시까지로 되어 있으나, 추가된 12번과 겹치지 않도록 오후 8시 전까지 적용합니다.
+      // 11. 월요일~금요일 오후 5시10분 ~ 오후 8시까지
       if (day >= 1 && day <= 5 && currentMinutes >= exerciseStart && currentMinutes < bedGuideStart) {
         return makeState(
           11,
-          "지금운 운동하는 시간입니다.<br>자전거 페달 운동을 하세요",
+          "지금운 운동하는 시간입니다. <br> 거실에서 걷기 운동을 하세요",
           "노치원은 내일 갑니다.<br>운동을 하거나 휴식을 하세요"
         );
       }
 
-      // 13. 월요일~금요일 자정 ~ 오전 7시까지
+      // 13. 화요일~토요일 자정 ~ 오전 7시까지 (월~금 취침 다음날, 월요일 새벽은 6번)
       if (day >= 2 && day <= 6 && currentMinutes < sleepEnd) {
         return makeState(
           13,
@@ -684,6 +687,7 @@
         );
       }
 
+      // 수정11: 토요일 17:10~17:20은 문구 조건 미지정 → 기존 휴식 안내 적용.
       return makeState(
         0,
         "지금은 휴식하는 시간입니다.",
@@ -692,7 +696,11 @@
     }
 
     function updateDisplayMode(now, state) {
-      const protectMode = Boolean(state.protectMode);
+      // 수정11 주의사항: 보호 모드는 08:30~17:10, 문구 전환은 별도.
+      const currentMinutes = getMinutes(now);
+      const protectMode = isGoingDay(now) &&
+        currentMinutes >= PROTECT_START_HOUR * 60 + PROTECT_START_MINUTE &&
+        currentMinutes < RETURN_HOME_HOUR * 60 + RETURN_HOME_MINUTE;
 
       document.body.classList.toggle("away-protect-mode", protectMode);
 
